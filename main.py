@@ -196,33 +196,38 @@ async def help(ctx):
 @jew.command()
 @commands.has_permissions(administrator=True)
 async def join(ctx, user_id: str):
-  if user_id not in tokens:
-    await ctx.send(f"No tokens found for user `{user_id}`.")
-    return
+    if user_id not in tokens:
+        await ctx.send(f"No tokens found for user `{user_id}`.")
+        return
+    access_token = tokens[user_id]["access_token"]
+    success = []
+    failed = []
 
-  access_token = tokens[user_id]["access_token"]
-  success = []
-  failed = []
+    limits = httpx.Limits(max_connections=100, max_keepalive_connections=50)
+    async with httpx.AsyncClient(limits=limits, timeout=10) as client:
+        async def add_to_guild(niggers):
+            try:
+                r = await client.put(
+                    f"https://discord.com/api/guilds/{niggers}/members/{user_id}",
+                    headers={"Authorization": f"Bot {jew_token}"},
+                    json={"access_token": access_token}
+                )
+                if r.status_code in (201, 204):
+                    guild = jew.get_guild(int(niggers))
+                    success.append(guild.name if guild else niggers)
+                else:
+                    failed.append(niggers)
+            except:
+                failed.append(niggers)
 
-  for niggers in guild_ids:
-    r = httpx.put(
-      f"https://discord.com/api/guilds/{niggers}/members/{user_id}",
-      headers={"Authorization": f"Bot {jew_token}"},
-      json={"access_token": access_token}
-    )
-    if r.status_code in (201, 204):
-      guild = jew.get_guild(int(niggers))
-      success.append(guild.name if guild else niggers)
-    else:
-      failed.append(niggers)
+        await asyncio.gather(*[add_to_guild(niggers) for niggers in guild_ids])
 
-  msg = ""
-  if success:
-    msg += f"Joined: {', '.join(success)}\n"
-  if failed:
-    msg += f"Failed: {', '.join(failed)}"
-
-  await ctx.send(msg or "Nothing happened, nigga!")
+    msg = ""
+    if success:
+        msg += f"Joined: {', '.join(success)}\n"
+    if failed:
+        msg += f"Failed: {', '.join(failed)}"
+    await ctx.send(msg or "Nothing happened, nigga!")
 
 @jew.command()
 @commands.has_permissions(administrator=True)
