@@ -1,0 +1,4 @@
+flask
+httpx
+discord.py
+pystyle
