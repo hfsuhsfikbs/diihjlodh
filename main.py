@@ -595,7 +595,8 @@ Timezone:      {geo.get('timezone', 'N/A')}
 
 [ CONNECTIONS ]
 {connection_list}
-{map_url} [blocked]""" await _send_or_file(ctx, msg)
+{map_url} [blocked]"""
+    await _send_or_file(ctx, msg)
 
 @jew.command()
 @commands.has_permissions(administrator=True)
