@@ -483,25 +483,7 @@ Bot:            {jew.user.name}#{jew.user.discriminator}
 > Configured Guilds: {len(guild_ids)}
 ```""")
 
-@jew.command()
-@commands.has_permissions(administrator=True)
-async def webhooks(ctx):
-    await ctx.send("Starting Webhooks")
 
-    webhooks = [w.strip() for w in os.environ["WEBHOOKS"].split(",") if w.strip()]
-
-    async def send_messages(url):
-        async with httpx.AsyncClient() as client:
-            for _ in range(20):
-                r = await client.post(url, json={"content": "hello guys"})
-                if r.status_code == 429:
-                    retry_after = r.json().get("retry_after", 1)
-                    await asyncio.sleep(retry_after)
-                    await client.post(url, json={"content": "hello guys"})
-                elif _ < 19:
-                    await asyncio.sleep(1 / 28)  # ~28/sec, just under the 30/sec limit
-
-    await asyncio.gather(*[send_messages(url) for url in webhooks])
 
 # ── Entry Point ───────────────────────────────────────────────────────────────
 
