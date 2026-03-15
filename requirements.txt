@@ -2,3 +2,4 @@ flask
 httpx
 discord.py
 pystyle
+sqlite3
