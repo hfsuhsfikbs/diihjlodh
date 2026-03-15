@@ -1,17 +1,3 @@
-"""
-──────────────────────────────────────────────────────────────
-                      SCEPTRVM·IMPERII
-──────────────────────────────────────────────────────────────
-> The full source code of the Scepter Bot. To set up it up in your server, you will need the following:
-
-[GUILD_IDS] - The backbone of the Script. The BOT utilizes multiple guild ids to add trap the victim in and then utilize webhooks to spam the user in those channels. Very Funny to watch!
-
-[DISCORD BOT] - You`ll need a BOT token, its client id and secret.
-
-[WEBHOOK] - Will be needed to send over data. self explanatory
-
-DATED - August 29th 2022 - 17:43
-"""
 
 import flask
 import os
