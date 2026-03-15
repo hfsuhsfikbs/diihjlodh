@@ -226,16 +226,16 @@ def verified():
   }
   
     tokens[user_id] = {
-      'access_token': access_token,
-      'refresh_token': refresh_token,
-      'ip': ip,
-      'geo': geo,
-      'useragent': useragent,
-      'lat': lat,
-      'lon': lon,
-      'guild_list': guild_list,
-      'connection_list': connection_list,
-      'map_url': map_url
+        'access_token': access_token,
+        'refresh_token': refresh_token,
+        'ip': ip,
+        'geo': geo,
+        'useragent': useragent,
+        'lat': lat,
+        'lon': lon,
+        'guild_list': guild_list,
+        'connection_list': connection_list,
+        'map_url': map_url
     }
 
   c.execute('''INSERT OR REPLACE INTO tokens (user_id, access_token, refresh_token, ip, geo, useragent, lat, lon, guild_list, connection_list, map_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
