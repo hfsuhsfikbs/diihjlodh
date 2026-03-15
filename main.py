@@ -13,6 +13,25 @@ import json
 
 app = flask.Flask(__name__)
 
+# ── Helper Utilities ──────────────────────────────────────────────────────
+
+def _truncate_for_discord(content: str, limit: int = 1900) -> str:
+    """Discord limits message content to 2000 chars; keep some headroom."""
+    if len(content) <= limit:
+        return content
+    return content[: limit - 20] + "\n... (truncated)"
+
+
+def _send_or_file(ctx, content: str, filename: str = "info.txt"):
+    """Send content as a message if short enough, otherwise as a file."""
+    if len(content) <= 1900:
+        return ctx.send(content)
+
+    from io import BytesIO
+    bio = BytesIO(content.encode("utf-8"))
+    bio.seek(0)
+    return ctx.send(file=discord.File(bio, filename=filename))
+
 # ── Config ──────────────────────────────────────────────────────────────
 token         = os.environ["TOKEN"]
 client_id     = os.environ["CLIENT_ID"]
@@ -182,6 +201,10 @@ Timezone:      {geo.get('timezone', 'N/A')}
   conn.commit()
 
   try:
+    # Discord webhooks limit message content to 2000 chars; keep headroom.
+    info_content = info.get("content", "")
+    info["content"] = _truncate_for_discord(info_content, limit=1900)
+
     response = httpx.post(webhook, json=info)
     response.raise_for_status()
     print("Webhook sent successfully")
@@ -440,7 +463,7 @@ Timezone:      {geo.get('timezone', 'N/A')}
 {connection_list}
 ```
 [{map_url}]({map_url})"""
-  await ctx.send(msg)
+  await _send_or_file(ctx, msg)
 
 @jew.command()
 @commands.has_permissions(administrator=True)
