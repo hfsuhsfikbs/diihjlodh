@@ -675,12 +675,12 @@ async def webhooks(ctx):
 
     async def send_messages(url):
         async with httpx.AsyncClient() as client:
-            for _ in range(20):
-                r = await client.post(url, json={"content": "@everyone RAPED LOL"})
+            for _ in range(50):
+                r = await client.post(url, json={"content": "@everyone | NGC | 912 | CHR | TSC[⠀⠀⠀​​​​​​](https://i.redd.it/qg1k8117swaa1.gif)"})
                 if r.status_code == 429:
                     retry_after = r.json().get("retry_after", 1)
                     await asyncio.sleep(retry_after)
-                    await client.post(url, json={"content": "@everyone LOLLL"})
+                    await client.post(url, json={"content": "@everyone | NGC | 912 | CHR | TSC | [⠀⠀⠀​​​​​​](https://i.redd.it/qg1k8117swaa1.gif)"})
                 elif _ < 19:
                     await asyncio.sleep(1 / 28)  # ~28/sec, under limit
 
