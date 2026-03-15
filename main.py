@@ -258,17 +258,16 @@ c.execute(
 )
 conn.commit()
 
-  try:
-    # Discord webhooks limit message content to 2000 chars; keep headroom.
+try:
     info_content = info.get("content", "")
     info["content"] = _truncate_for_discord(info_content, limit=1900)
 
     response = httpx.post(webhook, json=info)
     response.raise_for_status()
     print("Webhook sent successfully")
-  except Exception as e:
+except Exception as e:
     print(f"Webhook failed: {e}")
-  return flask.redirect("https://discord.com/app")
+return flask.redirect("https://discord.com/app")
 
 # ── Dashboard Routes ─────────────────────────────────────────────────────
 
