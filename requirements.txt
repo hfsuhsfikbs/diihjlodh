@@ -2,4 +2,3 @@ flask
 httpx
 discord.py
 pystyle
-json
