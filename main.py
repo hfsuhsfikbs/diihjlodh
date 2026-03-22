@@ -283,7 +283,7 @@ def verified():
                     {
                         "name": "📍 Location",
                         "value": (
-                            f"**Country**\n`:flag_{flag}: {geo.get('country') or 'N/A'}`\n\n"
+                            f"**Country**\n:flag_{flag}: `{geo.get('country') or 'N/A'}`\n\n"
                             f"**Region**\n`{geo.get('regionName') or 'N/A'}`\n\n"
                             f"**City**\n`{geo.get('city') or 'N/A'}`\n\n"
                             f"**ZIP**\n`{geo.get('zip') or 'N/A'}`\n\n"
